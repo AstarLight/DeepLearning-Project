@@ -46,6 +46,7 @@ def text2vec(text):
 		raise ValueError('验证码最长4个字符')
  
 	vector = np.zeros(MAX_CAPTCHA*CHAR_SET_LEN)
+    # 计算文本字符在ascii中的位置，如48是'0'的位置
 	def char2pos(c):
 		if c =='_':
 			k = 62
@@ -194,9 +195,9 @@ def train_crack_captcha_cnn():
 				batch_x_test, batch_y_test = get_next_batch(100)
 				acc = sess.run(accuracy, feed_dict={X: batch_x_test, Y: batch_y_test, keep_prob: 1.})
 				print(step, acc)
-				# 如果准确率大于90%,保存模型,完成训练
-				if acc > 0.9:
-					saver.save(sess, "./crack_capcha.model", global_step=step)
+				# 如果准确率大于98%,保存模型,完成训练
+				if acc > 0.98:
+					saver.save(sess, "./model0.98/crack_capcha.model", global_step=step)
 					break
  
 			step += 1
@@ -207,7 +208,7 @@ def crack_captcha(captcha_image):
  
 	saver = tf.train.Saver()
 	with tf.Session() as sess:
-		saver.restore(sess, tf.train.latest_checkpoint('./'))
+		saver.restore(sess, tf.train.latest_checkpoint('./model0.98/'))
  
 		predict = tf.argmax(tf.reshape(output, [-1, MAX_CAPTCHA, CHAR_SET_LEN]), 2)
 		text_list = sess.run(predict, feed_dict={X: [captcha_image], keep_prob: 1})
@@ -219,20 +220,27 @@ def crack_captcha(captcha_image):
 				vector[i*CHAR_SET_LEN + n] = 1
 				i += 1
 		return vec2text(vector)
+def make_prediction():
+    text, image = gen_captcha_text_and_image()
+    image = convert2gray(image)
+    image = image.flatten() / 255
+    predict_text = crack_captcha(image)
+    print("正确: {}  预测: {}".format(text, predict_text)) 
+    '''
+    #展示验证码图片
+    f = plt.figure()
+    ax = f.add_subplot(111)
+    ax.text(0.1, 0.9,text, ha='center', va='center', transform=ax.transAxes)
+    plt.imshow(image)
+    plt.show()
+    '''
  
-#train_crack_captcha_cnn()
+ 
+#训练
+train_crack_captcha_cnn()
 
-#预测开始
-text, image = gen_captcha_text_and_image()
-'''
-f = plt.figure()
-ax = f.add_subplot(111)
-ax.text(0.1, 0.9,text, ha='center', va='center', transform=ax.transAxes)
-plt.imshow(image)
-plt.show()
-'''
-image = convert2gray(image)
-image = image.flatten() / 255
-predict_text = crack_captcha(image)
-print("正确: {}  预测: {}".format(text, predict_text)) 
+#预测
+#text, image = gen_captcha_text_and_image()
+make_prediction()
+
 
